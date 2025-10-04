@@ -190,6 +190,7 @@ and lex_triple_quote_string buf =
     }
   | whitespace* newline whitespace* {
         new_line lexbuf;
+        Buffer.add_char buf '\n';
         lex_triple_quote_string buf lexbuf
     }
   | _ as c {

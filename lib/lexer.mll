@@ -131,7 +131,7 @@ and lex_really =
   | '-' { expect_single_space "-" DASH lexbuf }
   | ',' { expect_single_space "," COMMA lexbuf }
   | _ { raise (SyntaxError ("Unexpected character: " ^ lexeme lexbuf)) }
-  | eof { EOF }
+  | eof { add_indent_tokens ~extra:EOF ""; lex lexbuf }
 and lex_string buf =
   parse
   | '"' { Buffer.contents buf }

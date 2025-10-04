@@ -142,6 +142,8 @@ and lex_string buf =
   | '\\' 'b' {Buffer.add_char buf '\b'; lex_string buf lexbuf }
   | '\\' 'f' {Buffer.add_char buf '\012'; lex_string buf lexbuf }
   | '\\' 'v' {Buffer.add_char buf '\011'; lex_string buf lexbuf }
+  | '\\' '/' {Buffer.add_char buf '/'; lex_string buf lexbuf }
+  | ('\\' _ as s) { raise (SyntaxError (Printf.sprintf "invalid escape sequence %S" s)) }
   | '\n' {raise (SyntaxError "unterminated string literal")}
   | _ as c {Buffer.add_char buf c; lex_string buf lexbuf }
 and lex_start_multiline_string f =
@@ -199,3 +201,20 @@ and lex_triple_quote_string buf =
         Buffer.add_char buf c;
         lex_triple_quote_string buf lexbuf
     }
+and expect_single_space symbol token =
+  parse
+  | ' ' { token }
+  | ' '* as s { raise (SyntaxError (expected_single_space_after symbol s))}
+and lex_newline expect_indent =
+  parse
+  | comment? newline {
+      new_line lexbuf;
+      lex_newline expect_indent lexbuf
+  }
+  | whitespace+ newline {
+      raise (SyntaxError trailing_spaces_not_allowed)
+  }
+  | whitespace* {
+      add_indent_tokens ~expect_indent ~extra:NEWLINE (lexeme lexbuf);
+      lex lexbuf
+  }

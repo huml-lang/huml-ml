@@ -106,7 +106,7 @@ and lex_really =
   | "null" { NULL }
   | '"' { STRING (lex_string (Buffer.create 256) lexbuf) }
   | ':' { expect_single_space ":" SCALAR_START lexbuf }
-  | "::" newline {
+  | "::" comment? newline {
         new_line lexbuf;
         queued_tokens := !queued_tokens @ [MULTILINE_VECTOR_START];
         lex_newline true lexbuf

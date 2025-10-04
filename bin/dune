@@ -1,0 +1,4 @@
+(executable
+ (public_name huml)
+ (name main)
+ (libraries huml))

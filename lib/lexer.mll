@@ -61,6 +61,11 @@ let dedent ws =
   if len >= !indent_level then
     String.sub ws !indent_level (len - !indent_level)
   else ws
+
+(* TODO: remove module-level state *)
+let init_state () =
+  indent_level := 0;
+  queued_tokens := []
 }
 
 let int = ('+'|'-')? ['0'-'9' '_']+
@@ -79,7 +84,7 @@ let escapable = '\\' | 'b' | 'f' | 'n' | 'r' | 't' | 'v'
 let comment = whitespace* "# " [^ '\n']*
 
 rule lex =
-  parse    
+  parse
   | "" {
       if !queued_tokens <> [] then
         let token = List.hd !queued_tokens in

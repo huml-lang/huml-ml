@@ -6,22 +6,18 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github nikochiko/huml-ml))
 
-(authors "Author Name <author@example.com>")
+(authors "Kaustubh M <ktvm42@gmail.com>")
 
-(maintainers "Maintainer Name <maintainer@example.com>")
+(maintainers "Kaustubh M <ktvm42@gmail.com>")
 
-(license LICENSE)
+(license MIT)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/nikochiko/huml-ml)
 
 (package
  (name huml)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml)
- (tags
-  ("add topics" "to describe" your project)))
-
-; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
+ (synopsis "OCaml parser for the Huml markup language")
+ (description "OCaml parser for the Huml markup language")
+ (depends ocaml (yojson (>= 2.0))))

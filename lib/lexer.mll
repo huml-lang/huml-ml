@@ -108,10 +108,14 @@ and lex_really =
   | newline { new_line lexbuf; lex_newline false lexbuf }
   | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
   | int { lexeme lexbuf |> int_or_intlit_of_string }
-  | float { FLOAT (lexeme lexbuf |> float_of_string) }
   | hex { lexeme lexbuf |> int_or_intlit_of_string }
   | octal { lexeme lexbuf |> int_or_intlit_of_string }
   | binary { lexeme lexbuf |> int_or_intlit_of_string }
+  | float {
+      let f = (lexeme lexbuf |> float_of_string) in
+      let i = int_of_float f in
+      if float_of_int i = f then INT i else FLOAT f
+    }
   | "true" { BOOL true }
   | "false" { BOOL false }
   | "null" { NULL }

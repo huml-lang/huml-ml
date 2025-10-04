@@ -1,0 +1,1 @@
+val parse : Lexing.lexbuf -> (Types.Ast.t, string) result

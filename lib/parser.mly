@@ -86,8 +86,10 @@ multiline_list:
 
 multiline_list_values:
   | NEWLINE; DASH; v_hd = scalar; v_tl = multiline_list_values { v_hd :: v_tl }
-  | NEWLINE; MULTILINE_VECTOR_START; NEWLINE; INDENT; v = multiline_vector; DEDENT { [v] }
-  | NEWLINE | { [] }
+  | NEWLINE; DASH; MULTILINE_VECTOR_START; NEWLINE; INDENT; v_hd = multiline_vector; DEDENT; v_tl = multiline_list_values
+  | NEWLINE; DASH; INLINE_VECTOR_START; v_hd = inline_vector; v_tl = multiline_list_values
+      { v_hd :: v_tl }
+  | { [] }
   ;
 
 inline_dict:

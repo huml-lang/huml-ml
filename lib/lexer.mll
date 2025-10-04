@@ -48,10 +48,13 @@ let check_indentation indent_level ws =
   else
     ()
 
+let remove_underscores s =
+  String.concat "" (String.split_on_char '_' s)
+
 let int_or_intlit_of_string s =
   match int_of_string_opt s with
   | Some i -> INT i
-  | None -> INT_LIT s
+  | None -> INT_LIT (s |> remove_underscores)
 
 let dedent ws =
   let len = String.length ws in

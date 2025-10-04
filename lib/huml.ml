@@ -1,8 +1,7 @@
 open Lexing
 open Types
 
-let (let*) = Result.bind
-
+let ( let* ) = Result.bind
 let supported_huml_version = "v0.1.0"
 
 let show_position pos =
@@ -14,8 +13,7 @@ let show_position pos =
 let check_version v =
   if v <> "" && v <> supported_huml_version then
     let msg =
-      Printf.sprintf
-        "Unsupported HUML version %s. Supported version is %s.\n" v
+      Printf.sprintf "Unsupported HUML version %s. Supported version is %s.\n" v
         supported_huml_version
     in
     Error msg

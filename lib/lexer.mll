@@ -52,6 +52,12 @@ let int_or_intlit_of_string s =
   match int_of_string_opt s with
   | Some i -> INT i
   | None -> INT_LIT s
+
+let dedent ws =
+  let len = String.length ws in
+  if len >= !indent_level then
+    String.sub ws !indent_level (len - !indent_level)
+  else ws
 }
 
 let int = ('+'|'-')? ['0'-'9' '_']+
@@ -117,8 +123,8 @@ and lex_really =
         lex_newline true lexbuf
     }
   | "::" { expect_single_space "::" INLINE_VECTOR_START lexbuf }
-  | "```" { STRING (lex_start_multiline_string lex_triple_backtick_string lexbuf) }
-  | "\"\"\"" { STRING (lex_start_multiline_string lex_triple_quote_string lexbuf) }
+  | "```" { STRING (lex_start_multiline_string lex_start_triple_backtick_string lexbuf) }
+  | "\"\"\"" { STRING (lex_start_multiline_string lex_start_triple_quote_string lexbuf) }
   | ident { IDENT (lexeme lexbuf) }
   | "[]" { LIST_EMPTY }
   | "{}" { DICT_EMPTY }
@@ -126,30 +132,40 @@ and lex_really =
   | ',' { expect_single_space "," COMMA lexbuf }
   | _ { raise (SyntaxError ("Unexpected character: " ^ lexeme lexbuf)) }
   | eof { EOF }
-and lex_start_multiline_string f =
-  parse
-  | comment { f (Buffer.create 256) lexbuf }
-  | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
-  | [^ '\n'] { raise (SyntaxError "unexpected content at end of line") }
-  | "" { f (Buffer.create 256) lexbuf }
 and lex_string buf =
   parse
   | '"' { Buffer.contents buf }
   | '\\' ('"' | '\\' as c) {Buffer.add_char buf c; lex_string buf lexbuf }
   | '\n' {raise (SyntaxError "unterminated string literal")}
   | _ as c {Buffer.add_char buf c; lex_string buf lexbuf }
+and lex_start_multiline_string f =
+  parse
+  | comment? newline { indent_level := !indent_level + indent_width; f (Buffer.create 256) lexbuf }
+  | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
+  | [^ '\n'] { raise (SyntaxError "unexpected content at end of line") }
+and lex_start_triple_backtick_string buf =
+  parse
+  | ' '* as ws {
+      let s = dedent ws in
+      Buffer.add_string buf s;
+      lex_triple_backtick_string buf lexbuf
+  }
+and lex_start_triple_quote_string buf =
+  parse
+  | whitespace* { lex_triple_quote_string buf lexbuf }
 and lex_triple_backtick_string buf =
   parse
   | '\\' ('`' | escapable as c) {Buffer.add_char buf c; lex_triple_backtick_string buf lexbuf }
-  | newline (whitespace* as indentation) "```" {
-        check_indentation (!indent_level - 2) indentation;
+  | newline (' '* as indentation) "```" {
+        check_indentation (!indent_level - indent_width) indentation;
         new_line lexbuf;
-        indent_level := !indent_level - 2;
+        indent_level := !indent_level - indent_width;
         Buffer.contents buf
     }
-  | newline (whitespace* as indentation) {
+  | newline (' '* as ws) {
         new_line lexbuf;
-        check_indentation (!indent_level - 2) indentation;
+        let s = "\n" ^ (dedent ws) in
+        Buffer.add_string buf s;
         lex_triple_backtick_string buf lexbuf
   }
   | _ as c {
@@ -163,9 +179,9 @@ and lex_triple_quote_string buf =
         lex_triple_quote_string buf lexbuf
     }
   | whitespace* newline (whitespace* as indentation) "\"\"\"" {
-        check_indentation (!indent_level - 1) indentation;
+        check_indentation (!indent_level - indent_width) indentation;
         new_line lexbuf;
-        indent_level := !indent_level - 1;
+        indent_level := !indent_level - indent_width;
         Buffer.contents buf
     }
   | whitespace* newline whitespace* {

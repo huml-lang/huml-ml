@@ -12,6 +12,7 @@ depends: [
   "dune" {>= "3.18"}
   "ocaml"
   "yojson" {>= "2.0"}
+  "alcotest" {with-test}
   "odoc" {with-doc}
 ]
 build: [

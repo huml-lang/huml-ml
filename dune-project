@@ -20,4 +20,7 @@
  (name huml)
  (synopsis "OCaml parser for the Huml markup language")
  (description "OCaml parser for the Huml markup language")
- (depends ocaml (yojson (>= 2.0))))
+ (depends
+   ocaml
+   (yojson (>= 2.0))
+   (alcotest :with-test)))

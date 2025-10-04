@@ -87,23 +87,11 @@ rule lex =
         token
       else lex_really lexbuf
   }
-and expect_single_space symbol token =
-  parse
-  | ' ' { token }
-  | ' '* as s { raise (SyntaxError (expected_single_space_after symbol s))}
-and lex_newline expect_indent =
-  parse
-  | comment? newline {
-      new_line lexbuf;
-      lex_newline expect_indent lexbuf
-  }
-  | whitespace+ newline {
-      raise (SyntaxError trailing_spaces_not_allowed)
-  }
-  | whitespace* {
-      add_indent_tokens ~expect_indent ~extra:NEWLINE (lexeme lexbuf);
-      lex lexbuf
-  }
+and lex_version = parse
+  | "%HUML " ('v'? ['0'-'9']+ ('.' ['0'-'9']+)* as version) {
+      version
+    }
+  | "" { "" }
 and lex_really =
   (* yes *)
   parse

@@ -81,15 +81,19 @@ empty_list:
   ;
 
 multiline_list:
-  | lv_hd = preceded(DASH, scalar); lv_tl = multiline_list_values { `List (lv_hd :: lv_tl) }
+  | lv_hd = multiline_list_value; lv_tl = multiline_list_values
+      { `List (lv_hd :: lv_tl) }
   ;
 
 multiline_list_values:
-  | NEWLINE; DASH; v_hd = scalar; v_tl = multiline_list_values { v_hd :: v_tl }
-  | NEWLINE; DASH; MULTILINE_VECTOR_START; NEWLINE; INDENT; v_hd = multiline_vector; DEDENT; v_tl = multiline_list_values
-  | NEWLINE; DASH; INLINE_VECTOR_START; v_hd = inline_vector; v_tl = multiline_list_values
-      { v_hd :: v_tl }
+  | NEWLINE; v_hd = multiline_list_value; v_tl = multiline_list_values { v_hd :: v_tl }
   | { [] }
+  ;
+
+multiline_list_value:
+  | v = preceded(DASH, scalar)
+  | v = preceded(DASH, vector_value)
+    { v }
   ;
 
 inline_dict:
@@ -120,6 +124,10 @@ multiline_dict_values:
 
 multiline_dict_value:
   | k = dict_key; SCALAR_START; v = scalar { ((k, v), $startpos) }
-  | k = dict_key; INLINE_VECTOR_START; v = inline_vector { ((k, v), $startpos) }
-  | k = dict_key; MULTILINE_VECTOR_START; NEWLINE; INDENT; v = multiline_vector; DEDENT { ((k, v), $startpos) }
+  | k = dict_key; v = vector_value { ((k, v), $startpos) }
+  ;
+
+vector_value:
+  | INLINE_VECTOR_START; v = inline_vector
+  | MULTILINE_VECTOR_START; NEWLINE; INDENT; v = multiline_vector; DEDENT { v }
   ;

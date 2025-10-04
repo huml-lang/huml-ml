@@ -143,6 +143,12 @@ and lex_string buf =
   parse
   | '"' { Buffer.contents buf }
   | '\\' ('"' | '\\' as c) {Buffer.add_char buf c; lex_string buf lexbuf }
+  | '\\' 'n' {Buffer.add_char buf '\n'; lex_string buf lexbuf }
+  | '\\' 't' {Buffer.add_char buf '\t'; lex_string buf lexbuf }
+  | '\\' 'r' {Buffer.add_char buf '\r'; lex_string buf lexbuf }
+  | '\\' 'b' {Buffer.add_char buf '\b'; lex_string buf lexbuf }
+  | '\\' 'f' {Buffer.add_char buf '\012'; lex_string buf lexbuf }
+  | '\\' 'v' {Buffer.add_char buf '\011'; lex_string buf lexbuf }
   | '\n' {raise (SyntaxError "unterminated string literal")}
   | _ as c {Buffer.add_char buf c; lex_string buf lexbuf }
 and lex_start_multiline_string f =

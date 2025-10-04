@@ -2,8 +2,7 @@ let version = "0.1.0"
 
 let usage_msg =
   "huml [OPTIONS] INPUT_FILE\n\n" ^ "Parse HUML files and output JSON.\n\n"
-  ^ "Examples:\n" ^ "  huml input.huml\n"
-  ^ "  huml input.huml -o output.json\n"
+  ^ "Examples:\n" ^ "  huml input.huml\n" ^ "  huml input.huml -o output.json\n"
 
 let help_msg =
   usage_msg ^ "\nOptions:\n"
@@ -49,8 +48,7 @@ let () =
 
   (* Read input file *)
   let ic =
-    try open_in input_file
-    with Sys_error msg -> error_and_exit msg 2
+    try open_in input_file with Sys_error msg -> error_and_exit msg 2
   in
   let lexbuf = Lexing.from_channel ic in
   lexbuf.lex_curr_p <- { lexbuf.lex_curr_p with pos_fname = input_file };
@@ -61,16 +59,18 @@ let () =
 
   match result with
   | Error err -> error_and_exit ("Parse error: " ^ err) 3
-  | Ok ast ->
+  | Ok ast -> (
       (* Convert to Yojson and format as JSON *)
-      let json = (ast :> Yojson.Basic.t) in
-      let json_string = Yojson.Basic.pretty_to_string json in
+      let json = (ast :> Yojson.Safe.t) in
+      let json_string = Yojson.Safe.pretty_to_string json in
 
       (* Output to stdout or file *)
-      (match output_file with
-       | None -> print_endline json_string
-       | Some path ->
-           let oc = try open_out path with Sys_error msg -> error_and_exit msg 2 in
-           output_string oc json_string;
-           output_char oc '\n';
-           close_out oc)
+      match output_file with
+      | None -> print_endline json_string
+      | Some path ->
+          let oc =
+            try open_out path with Sys_error msg -> error_and_exit msg 2
+          in
+          output_string oc json_string;
+          output_char oc '\n';
+          close_out oc)

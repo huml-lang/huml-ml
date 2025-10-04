@@ -47,6 +47,11 @@ let check_indentation indent_level ws =
     raise (SyntaxError (bad_indent indent_level len))
   else
     ()
+
+let int_or_intlit_of_string s =
+  match int_of_string_opt s with
+  | Some i -> INT i
+  | None -> INT_LIT s
 }
 
 let int = ('+'|'-')? ['0'-'9' '_']+
@@ -96,11 +101,11 @@ and lex_really =
   | comment { lex lexbuf }
   | newline { new_line lexbuf; lex_newline false lexbuf }
   | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
-  | int { INT (lexeme lexbuf |> int_of_string) }
+  | int { lexeme lexbuf |> int_or_intlit_of_string }
   | float { FLOAT (lexeme lexbuf |> float_of_string) }
-  | hex { INT (lexeme lexbuf |> int_of_string) }
-  | octal { INT (lexeme lexbuf |> int_of_string) }
-  | binary { INT (lexeme lexbuf |> int_of_string) }
+  | hex { lexeme lexbuf |> int_or_intlit_of_string }
+  | octal { lexeme lexbuf |> int_or_intlit_of_string }
+  | binary { lexeme lexbuf |> int_or_intlit_of_string }
   | "true" { BOOL true }
   | "false" { BOOL false }
   | "null" { NULL }

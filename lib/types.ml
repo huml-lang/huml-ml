@@ -3,6 +3,8 @@ module Ast = struct
     [ `String of string
     | `Float of float
     | `Int of int
+    | `Intlit of
+      string (* when integer can't fit into ocaml's 63-bit int type *)
     | `Bool of bool
     | `Null
     | `Assoc of (string * t) list
@@ -12,6 +14,7 @@ module Ast = struct
     | `String s -> Printf.sprintf "%S" s
     | `Float f -> string_of_float f
     | `Int i -> string_of_int i
+    | `Intlit s -> s
     | `Bool b -> string_of_bool b
     | `Null -> "null"
     | `Assoc obj ->

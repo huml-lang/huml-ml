@@ -16,6 +16,7 @@ let make_assoc lst =
 %token <string> STRING
 %token <float> FLOAT
 %token <int> INT
+%token <string> INT_LIT
 %token <bool> BOOL
 %token <string> IDENT
 %token NEWLINE
@@ -55,6 +56,7 @@ scalar:
   | STRING { `String $1 }
   | FLOAT { `Float $1 }
   | INT { `Int $1 }
+  | INT_LIT { `Intlit $1 }
   | BOOL { `Bool $1 }
   | NULL { `Null }
   ;

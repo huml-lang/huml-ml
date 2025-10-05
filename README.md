@@ -219,6 +219,9 @@ vector_value:
     | '\n' '\w'{curr_ind+2} (s:[^ '\n']*) -> add s to string
     | _                                   -> error: improper indent?
 | eof                                     -> EOF
+
+comment: whitespace* '#' [^ '\n']*
+whitespace: ' ' | '\t'
 ```
 
 ## License

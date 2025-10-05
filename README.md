@@ -63,6 +63,121 @@ dune build
 dune install
 ```
 
+## BNF
+
+```
+(*
+tokens:
+  - NEWLINE
+  - EOF
+  - COMMA
+  - INDENT
+  - DEDENT
+  - <string> IDENT
+  - <string> STRING
+  - <float> FLOAT
+  - <int> INT
+  - <bool> BOOL
+  - NULL
+  - EMPTY_LIST
+  - EMPTY_DICT
+  - SCALAR_START
+  - INLINE_VECTOR_START
+  - MULTILINE_VECTOR_START
+*)
+
+main:
+  | NEWLINE root_value NEWLINE EOF
+  ;
+
+root_value:
+  (* root value needs disambiguating between inline & multiline vectors *)
+  | scalar_key_value, ( COMMA scalar_key_value )+  (* inline dict *)
+  | scalar, ( COMMA scalar )+  (* inline list *)
+  | multiline_vector
+  | scalar
+  | EMPTY_LIST
+  | EMPTY_DICT
+  ; 
+
+scalar:
+  | STRING
+  | FLOAT
+  | INT
+  | BOOL
+  | NULL
+  ;
+
+(* vectors *)
+vector:
+  | inline_vector
+  | multiline_vector
+  ;
+
+inline_vector:
+  | inline_list
+  | inline_dict
+  ;
+
+multiline_vector:
+  | multiline_list
+  | multiline_dict
+  ;
+
+(* lists *)
+
+inline_list:
+  | EMPTY_LIST
+  | scalar, ( COMMA scalar )*
+  ;
+
+multiline_list:
+  (* preceded(NEWLINE, ...) will error on hanging newline at end *)
+  | multiline_list_item, multiline_list_items
+  ;
+
+multiline_list_items:
+  | NEWLINE, multiline_list_item, multiline_list_items
+  | NEWLINE?
+  ;
+
+multiline_list_item:
+  | DASH ( scalar | vector_value )
+  ;
+
+(* dicts *)
+
+inline_dict:
+  | EMPTY_DICT
+  | scalar_key_value, ( COMMA scalar_key_value )*
+  ;
+
+multiline_dict:
+  | multiline_dict_item, multiline_dict_items
+
+multiline_dict_items:
+  | NEWLINE, multiline_dict_item, multiline_dict_items
+  | NEWLINE?
+  ;
+
+multiline_dict_item:
+  | scalar_key_value
+  | dict_key, vector_value
+  ;
+
+scalar_key_value:
+  | dict_key, SCALAR_START, scalar
+  ;
+
+dict_key:
+  | IDENT | STRING ;
+
+vector_value:
+  | INLINE_VECTOR_START, inline_vector
+  | MULTILINE_VECTOR_START, NEWLINE, INDENT, multiline_vector, DEDENT
+  ;
+```
+
 ## License
 
 MIT.

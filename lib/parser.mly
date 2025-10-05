@@ -59,6 +59,10 @@ scalar:
   | INT_LIT { `Intlit $1 }
   | BOOL { `Bool $1 }
   | NULL { `Null }
+  | IDENT {
+      let msg = Printf.sprintf "strings must be quoted: %s\nHint: try %S instead?" $1 $1 in
+      raise (ParseError (msg, $startpos))
+    }
   ;
 
 inline_vector:

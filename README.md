@@ -63,29 +63,29 @@ dune build
 dune install
 ```
 
-## BNF
+## Grammar
+
+### Tokens
+- NEWLINE
+- EOF
+- COMMA
+- INDENT
+- DEDENT
+- <string> IDENT
+- <string> STRING
+- <float> FLOAT
+- <int> INT
+- <bool> BOOL
+- NULL
+- EMPTY_LIST
+- EMPTY_DICT
+- SCALAR_START
+- INLINE_VECTOR_START
+- MULTILINE_VECTOR_START
+
+### BNF
 
 ```
-(*
-tokens:
-  - NEWLINE
-  - EOF
-  - COMMA
-  - INDENT
-  - DEDENT
-  - <string> IDENT
-  - <string> STRING
-  - <float> FLOAT
-  - <int> INT
-  - <bool> BOOL
-  - NULL
-  - EMPTY_LIST
-  - EMPTY_DICT
-  - SCALAR_START
-  - INLINE_VECTOR_START
-  - MULTILINE_VECTOR_START
-*)
-
 main:
   | NEWLINE root_value NEWLINE EOF
   ;
@@ -177,6 +177,30 @@ vector_value:
   | MULTILINE_VECTOR_START, NEWLINE, INDENT, multiline_vector, DEDENT
   ;
 ```
+
+<!-- 
+### Tokenizer
+
+```
+INT:
+  | ('+'|'-')? ['0'-'9' '_']+
+  | ('+'|'-')? "0x" ['0'-'9' 'a'-'f' 'A'-'F' '_']+  ( from_hex )
+  | ('+'|'-')? "0o" ['0'-'7' '_']+                  ( from_octal )
+  | ('+'|'-')? "0b" ['0'-'1' '_']+                  ( from_binary )
+FLOAT:
+  | "nan"
+  | ('+'|'-')? "inf"
+  | int '.' ['0'-'9' '_'] (('e'|'E') int)?
+  | from_exp int (('e'|'E') int)
+BOOL:
+  | "true"
+  | "false"
+NULL:
+  | "null"
+STRING:
+  | '"' ( '\' '"' | [ ^ '"' | '\n' ] )* '"'
+  | """ '\n' INDENT
+-->
 
 ## License
 

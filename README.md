@@ -87,7 +87,7 @@ dune install
 
 ```
 main:
-  | NEWLINE root_value NEWLINE EOF
+  | NEWLINE* root_value NEWLINE* EOF
   ;
 
 root_value:
@@ -178,29 +178,53 @@ vector_value:
   ;
 ```
 
-<!-- 
 ### Tokenizer
 
 ```
-INT:
+NEWLINE:
+  | (COMMENT? '\n')+                                ( compress consecutive newlines into 1 token )
+COMMENT:
+  | whitespace* '#' [^ '\n']*                       ( ignore )
+EMPTY_LIST:
+  | "[]"
+EMPTY_DICT:
+  | "{}"
+MULTILINE_VECTOR_START:
+  | "::" COMMENT? '\n'                              ( when followed by newline )
+INLINE_VECTOR_START:
+  | ":: "                                           ( when followed by space )
+DASH:
+  | "- "                                            ( must be followed by space )
+COMMA:
+  | ", "                                            ( must be followed by space )
+SCALAR_START:
+  | ": "                                            ( must be followed by space )
+INT(int):
   | ('+'|'-')? ['0'-'9' '_']+
   | ('+'|'-')? "0x" ['0'-'9' 'a'-'f' 'A'-'F' '_']+  ( from_hex )
   | ('+'|'-')? "0o" ['0'-'7' '_']+                  ( from_octal )
   | ('+'|'-')? "0b" ['0'-'1' '_']+                  ( from_binary )
-FLOAT:
-  | "nan"
-  | ('+'|'-')? "inf"
+FLOAT(float):
+  | "nan"                                           ( from_nan )
+  | ('+'|'-')? "inf"                                ( from_inf )
   | int '.' ['0'-'9' '_'] (('e'|'E') int)?
   | from_exp int (('e'|'E') int)
-BOOL:
+BOOL(bool):
   | "true"
   | "false"
+STRING(string):
+  | '"' ( '\' '"' | [ ^ '"' | '\n' ] )* '"'         ( also, handle escape sequences )
+  | "\"\"\"" COMMENT? NEWLINE
+      INDENT ('.'*) DEDENT NEWLINE "\"\"\""         ( multiline string )
+  | "```" COMMENT? NEWLINE
+      INDENT ('.'*) DEDENT NEWLINE "```"            ( multiline string )
 NULL:
   | "null"
-STRING:
-  | '"' ( '\' '"' | [ ^ '"' | '\n' ] )* '"'
-  | """ '\n' INDENT
--->
+INDENT:
+  | '\n' ' '+ (?:[^ COMMENT '\n']*)                 ( maybe increase indent level )
+DEDENT:
+  | '\n' ' '* (?:[^ COMMENT '\n']*)                 ( maybe decrease indent level )
+```
 
 ## License
 

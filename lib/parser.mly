@@ -126,7 +126,7 @@ multiline_dict_items:
   ;
 
 multiline_dict_item:
-  | k = dict_key; SCALAR_START; v = scalar { ((k, v), $startpos) }
+  | scalar_key_value { $1 }
   | k = dict_key; v = vector_value { ((k, v), $startpos) }
   ;
 

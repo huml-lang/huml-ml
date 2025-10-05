@@ -180,51 +180,45 @@ vector_value:
 
 ### Tokenizer
 
+`curr_ind` = current indentation level (in spaces)
+
 ```
-NEWLINE:
-  | (COMMENT? '\n')+                                # compress consecutive newlines into 1 token
-COMMENT:
-  | whitespace* '#' [^ '\n']*                       # ignore
-EMPTY_LIST:
-  | "[]"
-EMPTY_DICT:
-  | "{}"
-MULTILINE_VECTOR_START:
-  | "::" COMMENT? '\n'                              # when followed by newline
-INLINE_VECTOR_START:
-  | ":: "                                           # when followed by space
-DASH:
-  | "- "                                            # must be followed by space
-COMMA:
-  | ", "                                            # must be followed by space
-SCALAR_START:
-  | ": "                                            # must be followed by space
-INT(int):
-  | ('+'|'-')? ['0'-'9' '_']+
-  | ('+'|'-')? "0x" ['0'-'9' 'a'-'f' 'A'-'F' '_']+  # from hex
-  | ('+'|'-')? "0o" ['0'-'7' '_']+                  # from octal
-  | ('+'|'-')? "0b" ['0'-'1' '_']+                  # from binary
-FLOAT(float):
-  | "nan"                                           # from nan
-  | ('+'|'-')? "inf"                                # from inf
-  | int '.' ['0'-'9' '_'] (('e'|'E') int)?
-  | from_exp int (('e'|'E') int)
-BOOL(bool):
-  | "true"
-  | "false"
-STRING(string):
-  | '"' ( '\' '"' | [ ^ '"' | '\n' ] )* '"'         # also, handle escape sequences
-  | "\"\"\"" COMMENT? NEWLINE
-      INDENT ('.'*) DEDENT NEWLINE "\"\"\""         # multiline string
-  | "```" COMMENT? NEWLINE
-      INDENT ('.'*) DEDENT NEWLINE "```"            # multiline string
-NULL:
-  | "null"
-INDENT:
-  | '\n' (' '){level+2} (?:[^ COMMENT '\n']*)       # level is current indent level. consume
-                                                    # level + 2 spaces and produce an INDENT token
-DEDENT:
-  | '\n' ' '* (?:[^ COMMENT '\n']*)                 # (current_indent_level - len(m)) / 2 DEDENT tokens, NEWLINE
+| '\n', comment                           -> skip & continue
+| '\n', ' '{curr_ind}                     -> NEWLINE
+| '\n', ' '{curr_ind+2}                   -> NEWLINE, INDENT
+| '\n', ' '{< curr_ind}                   -> DEDENT (curr_ind - len(m)) / 2 times, NEWLINE
+| (comment?, '\n')+                       -> NEWLINE
+| "[]"                                    -> EMPTY_LIST
+| "{}"                                    -> EMPTY_DICT
+| "::", comment?, '\n'                    -> [MULTILINE_VECTOR_START, NEWLINE]
+| "::"                                    -> INLINE_VECTOR_START  # expect space after
+| ":"                                     -> SCALAR_START         # expect space after
+| "-"                                     -> DASH                 # expect space after
+| ","                                     -> COMMA                # expect space after
+| ('+'|'-')?, ['0'-'9' '_']+              -> INT(int)             # from decimal
+| ('+'|'-')?, "0x",
+    ['0'-'9' 'a'-'f' 'A'-'F' '_']+        -> INT(int)             # from hex
+| ('+'|'-')?, "0o",
+    ['0'-'7' '_']+                        -> INT(int)             # from octal
+| ('+'|'-')?, "0b", ['0'-'1' '_']+        -> INT(int)             # from binary
+| "nan"                                   -> FLOAT(float)         # from nan
+| ('+'|'-')? "inf"                        -> FLOAT(float)         # from inf
+| int, '.', ['0'-'9' '_'],
+    (('e'|'E'), int)?                     -> FLOAT(float)
+| int, (('e'|'E') int)                    -> FLOAT(float)
+| "true" | "false"                        -> BOOL(bool)
+| "null"                                  -> NULL
+| '"' ("\\\"" | [^ '\n' '"' ])* '"'       -> STRING(string)       # additionally, handle escape sequences
+| "\"\"\"", comment?, '\n'
+    | '\n' '\w'{curr_ind} "\"\"\""        -> STRING(string)
+    | '\w'* '\n' '\w'*                    -> ignore line, continue string
+    | '\\' _                              -> handle escape sequence, add char to string
+    | char                                -> add char to string
+| "```", comment?, '\n', '\w'{curr_ind+2}
+    | '\n' '\w'{curr_ind} "```"           -> STRING(string)
+    | '\n' '\w'{curr_ind+2} (s:[^ '\n']*) -> add s to string
+    | _                                   -> error: improper indent?
+| eof                                     -> EOF
 ```
 
 ## License

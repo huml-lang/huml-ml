@@ -45,8 +45,7 @@ root_value:
       { make_assoc (kv_hd :: kv_tl) }
   | lst_hd = scalar; COMMA; lst_tl = separated_nonempty_list(COMMA, scalar)
       { `List (lst_hd :: lst_tl) }
-  | v = multiline_dict
-  | v = multiline_list
+  | v = multiline_vector
   | v = empty_list
   | v = empty_dict
   | v = scalar
@@ -85,16 +84,16 @@ empty_list:
   ;
 
 multiline_list:
-  | lv_hd = multiline_list_value; lv_tl = multiline_list_values
+  | lv_hd = multiline_list_item; lv_tl = multiline_list_items
       { `List (lv_hd :: lv_tl) }
   ;
 
-multiline_list_values:
-  | NEWLINE; v_hd = multiline_list_value; v_tl = multiline_list_values { v_hd :: v_tl }
-  | { [] }
+multiline_list_items:
+  | NEWLINE; v_hd = multiline_list_item; v_tl = multiline_list_items { v_hd :: v_tl }
+  | NEWLINE? { [] }
   ;
 
-multiline_list_value:
+multiline_list_item:
   | v = preceded(DASH, scalar)
   | v = preceded(DASH, vector_value)
     { v }
@@ -118,15 +117,15 @@ dict_key:
   ;
 
 multiline_dict:
-  | kv_hd = multiline_dict_value; kv_tl = multiline_dict_values { make_assoc (kv_hd :: kv_tl) }
+  | kv_hd = multiline_dict_item; kv_tl = multiline_dict_items { make_assoc (kv_hd :: kv_tl) }
   ;
 
-multiline_dict_values:
-  | NEWLINE; hd = multiline_dict_value; tl = multiline_dict_values { hd :: tl }
-  | NEWLINE | { [] }
+multiline_dict_items:
+  | NEWLINE; hd = multiline_dict_item; tl = multiline_dict_items { hd :: tl }
+  | NEWLINE? { [] }
   ;
 
-multiline_dict_value:
+multiline_dict_item:
   | k = dict_key; SCALAR_START; v = scalar { ((k, v), $startpos) }
   | k = dict_key; v = vector_value { ((k, v), $startpos) }
   ;

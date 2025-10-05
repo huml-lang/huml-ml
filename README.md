@@ -2,7 +2,14 @@
 
 OCaml parser for [HUML](https://huml.io) (Human Markup Language).
 
+## Playground
+
+This parser has been compiled with [`Js_of_ocaml`](https://github.com/ocsigen/Js_of_ocaml)
+and deployed here: [kaustubh.page/huml](https://kaustubh.page/huml).
+
 ## CLI Usage
+
+Install the `huml-cli` package to use the command-line interface.
 
 ```bash
 # Parse HUML file and output JSON to stdout
@@ -22,6 +29,8 @@ huml --version
 ```
 
 ## Library Usage
+
+Install the `huml` package to use just the library (without the CLI).
 
 ```ocaml
 open Huml

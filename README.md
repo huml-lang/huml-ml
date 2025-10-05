@@ -182,48 +182,49 @@ vector_value:
 
 ```
 NEWLINE:
-  | (COMMENT? '\n')+                                ( compress consecutive newlines into 1 token )
+  | (COMMENT? '\n')+                                # compress consecutive newlines into 1 token
 COMMENT:
-  | whitespace* '#' [^ '\n']*                       ( ignore )
+  | whitespace* '#' [^ '\n']*                       # ignore
 EMPTY_LIST:
   | "[]"
 EMPTY_DICT:
   | "{}"
 MULTILINE_VECTOR_START:
-  | "::" COMMENT? '\n'                              ( when followed by newline )
+  | "::" COMMENT? '\n'                              # when followed by newline
 INLINE_VECTOR_START:
-  | ":: "                                           ( when followed by space )
+  | ":: "                                           # when followed by space
 DASH:
-  | "- "                                            ( must be followed by space )
+  | "- "                                            # must be followed by space
 COMMA:
-  | ", "                                            ( must be followed by space )
+  | ", "                                            # must be followed by space
 SCALAR_START:
-  | ": "                                            ( must be followed by space )
+  | ": "                                            # must be followed by space
 INT(int):
   | ('+'|'-')? ['0'-'9' '_']+
-  | ('+'|'-')? "0x" ['0'-'9' 'a'-'f' 'A'-'F' '_']+  ( from_hex )
-  | ('+'|'-')? "0o" ['0'-'7' '_']+                  ( from_octal )
-  | ('+'|'-')? "0b" ['0'-'1' '_']+                  ( from_binary )
+  | ('+'|'-')? "0x" ['0'-'9' 'a'-'f' 'A'-'F' '_']+  # from hex
+  | ('+'|'-')? "0o" ['0'-'7' '_']+                  # from octal
+  | ('+'|'-')? "0b" ['0'-'1' '_']+                  # from binary
 FLOAT(float):
-  | "nan"                                           ( from_nan )
-  | ('+'|'-')? "inf"                                ( from_inf )
+  | "nan"                                           # from nan
+  | ('+'|'-')? "inf"                                # from inf
   | int '.' ['0'-'9' '_'] (('e'|'E') int)?
   | from_exp int (('e'|'E') int)
 BOOL(bool):
   | "true"
   | "false"
 STRING(string):
-  | '"' ( '\' '"' | [ ^ '"' | '\n' ] )* '"'         ( also, handle escape sequences )
+  | '"' ( '\' '"' | [ ^ '"' | '\n' ] )* '"'         # also, handle escape sequences
   | "\"\"\"" COMMENT? NEWLINE
-      INDENT ('.'*) DEDENT NEWLINE "\"\"\""         ( multiline string )
+      INDENT ('.'*) DEDENT NEWLINE "\"\"\""         # multiline string
   | "```" COMMENT? NEWLINE
-      INDENT ('.'*) DEDENT NEWLINE "```"            ( multiline string )
+      INDENT ('.'*) DEDENT NEWLINE "```"            # multiline string
 NULL:
   | "null"
 INDENT:
-  | '\n' ' '+ (?:[^ COMMENT '\n']*)                 ( maybe increase indent level )
+  | '\n' (' '){level+2} (?:[^ COMMENT '\n']*)       # level is current indent level. consume
+                                                    # level + 2 spaces and produce an INDENT token
 DEDENT:
-  | '\n' ' '* (?:[^ COMMENT '\n']*)                 ( maybe decrease indent level )
+  | '\n' ' '* (?:[^ COMMENT '\n']*)                 # (current_indent_level - len(m)) / 2 DEDENT tokens, NEWLINE
 ```
 
 ## License

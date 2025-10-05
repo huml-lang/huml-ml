@@ -1,4 +1,5 @@
 (executable
- (public_name huml)
  (name main)
+ (public_name huml)
+ (package huml-cli)
  (libraries huml yojson))

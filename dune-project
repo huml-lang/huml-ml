@@ -22,5 +22,14 @@
  (description "OCaml parser for the Huml markup language")
  (depends
    ocaml
-   (yojson (>= 2.0))
-   (alcotest :with-test)))
+   (alcotest :with-test)
+   (yojson :with-test)))
+
+(package
+  (name huml-cli)
+  (synopsis "Command line interface for Huml parser")
+  (description "Command line interface for Huml parser")
+  (depends
+    ocaml
+    huml
+    yojson))

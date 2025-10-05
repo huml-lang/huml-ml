@@ -4,7 +4,7 @@ open Types
 let make_assoc lst =
   let rec check_duplicates acc = function
   (* TODO: would it be nicer to use `Seq` instead of `List`? *)
-  | [] -> acc
+  | [] -> List.rev acc
   | ((k, _), pos) :: _ when List.exists (fun (k', _) -> k = k') acc ->
       let msg = Printf.sprintf "duplicate key: %S" k in
       raise (ParseError (msg, pos))

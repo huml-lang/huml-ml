@@ -21,10 +21,8 @@ let token_to_string = function
   | FLOAT f -> Printf.sprintf "FLOAT(%g)" f
   | INT i -> Printf.sprintf "INT(%d)" i
   | INT_LIT s -> Printf.sprintf "INT_LIT(%S)" s
-  | BOOL b -> Printf.sprintf "BOOL(%b)" b
   | IDENT s -> Printf.sprintf "IDENT(%S)" s
   | NEWLINE -> "NEWLINE"
-  | NULL -> "NULL"
   | LIST_EMPTY -> "LIST_EMPTY"
   | DICT_EMPTY -> "DICT_EMPTY"
   | COMMA -> "COMMA"

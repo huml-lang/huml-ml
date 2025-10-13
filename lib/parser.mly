@@ -17,10 +17,8 @@ let make_assoc lst =
 %token <float> FLOAT
 %token <int> INT
 %token <string> INT_LIT
-%token <bool> BOOL
 %token <string> IDENT
 %token NEWLINE
-%token NULL
 %token LIST_EMPTY
 %token DICT_EMPTY
 %token COMMA
@@ -56,11 +54,14 @@ scalar:
   | FLOAT { `Float $1 }
   | INT { `Int $1 }
   | INT_LIT { `Intlit $1 }
-  | BOOL { `Bool $1 }
-  | NULL { `Null }
-  | IDENT {
-      let msg = Printf.sprintf "strings must be quoted: %s\nHint: try %S instead?" $1 $1 in
-      raise (ParseError (msg, $startpos))
+  | s = IDENT {
+      match s with
+      | "true" -> `Bool true
+      | "false" -> `Bool false
+      | "null" -> `Null
+      | _ -> (
+          let msg = Printf.sprintf "strings must be quoted: %s\nHint: try %S instead?" s s in
+          raise (ParseError (msg, $startpos)))
     }
   ;
 

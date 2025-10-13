@@ -112,9 +112,6 @@ and lex_really =
       let i = int_of_float f in
       if float_of_int i = f then INT i else FLOAT f
     }
-  | "true" { BOOL true }
-  | "false" { BOOL false }
-  | "null" { NULL }
   | '"' { STRING (lex_string (Buffer.create 256) lexbuf) }
   | ':' { expect_single_space ":" SCALAR_START lexbuf }
   | "::" comment? newline {

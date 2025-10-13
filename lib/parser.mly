@@ -59,6 +59,8 @@ scalar:
       | "true" -> `Bool true
       | "false" -> `Bool false
       | "null" -> `Null
+      | "inf" -> `Float infinity
+      | "nan" -> `Float nan
       | _ -> (
           let msg = Printf.sprintf "strings must be quoted: %s\nHint: try %S instead?" s s in
           raise (ParseError (msg, $startpos)))

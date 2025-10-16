@@ -2,7 +2,7 @@
 (using menhir 3.0)
 
 (name huml)
-(version v0.1.0)
+(version v0.1.1)
 
 (generate_opam_files true)
 
@@ -23,6 +23,7 @@
  (description "OCaml parser for the Huml markup language")
  (depends
    ocaml
+   menhir
    (alcotest :with-test)
    (yojson :with-test)))
 

@@ -1,4 +1,4 @@
-let version = "0.1.0"
+let version = "0.1.1"
 
 let usage_msg =
   "huml [OPTIONS] INPUT_FILE\n\n" ^ "Parse HUML files and output JSON.\n\n"

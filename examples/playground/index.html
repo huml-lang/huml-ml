@@ -6,7 +6,7 @@
     <title>HUML Parser</title>
     <script src="https://github.com/huml-lang/huml-ml/releases/download/v0.1.0/huml_js.bc.js" defer></script>
     <script src="https://unpkg.com/codemirror@5/lib/codemirror.js"></script>
-    <script src="https://unpkg.com/codemirror@5/mode/yaml/yaml.js"></script>
+    <script src="https://kaustubh.page/huml/codemirror5-huml.min.js"></script>
     <script src="https://unpkg.com/codemirror@5/mode/javascript/javascript.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/codemirror@5/lib/codemirror.css">
     <style>
@@ -67,6 +67,9 @@
         font-family: monospace;
         white-space: pre-wrap;
       }
+      .info {
+        margin-top: 20px;
+      }
     </style>
   </head>
   <body>
@@ -88,6 +91,22 @@
       </div>
 
       <div id="error-display" class="error" style="display: none;"></div>
+
+      <div class="info">
+        <p>
+          This is a simple playground to try out the OCaml implementation of the HUML parser. OCaml
+          is pretty cool for being able to compile to multiple targets. This allows easy manual testing
+          of the parser.
+        </p>
+        <p>
+          Links:
+          <ul>
+            <li>GitHub: <a href="https://github.com/huml-lang/huml-ml" target="_blank">huml-lang/huml-ml</a></li>
+            <li>HUML Website: <a href="https://huml.io/">huml.io</a>
+            <li>HUML Spec: <a href="https://huml.io/specifications/v0-1-0/">v0.1.0 specification</a></li>
+          </ul>
+        </p>
+      </div>
     </div>
 
     <script>
@@ -96,7 +115,7 @@
       window.addEventListener('load', function() {
         // Initialize CodeMirror editors
         humlEditor = CodeMirror.fromTextArea(document.getElementById('huml-input'), {
-          mode: 'yaml',
+          mode: 'huml',
           lineNumbers: true,
           theme: 'default',
           tabSize: 2,
@@ -341,6 +360,8 @@ foo_final::
         final_nested::
           ultimate_test:: success: true, complete: "yes"
 `);
+
+        parseHuml();
       });
 
       function parseHuml() {

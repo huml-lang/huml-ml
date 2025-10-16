@@ -130,7 +130,7 @@ and lex_really =
 and lex_string buf =
   parse
   | '"' { Buffer.contents buf }
-  | '\\' ('"' | '\\' as c) {Buffer.add_char buf c; lex_string buf lexbuf }
+  | '\\' ('"' | '\\' | '/' as c) {Buffer.add_char buf c; lex_string buf lexbuf }
   | '\\' 'n' {Buffer.add_char buf '\n'; lex_string buf lexbuf }
   | '\\' 't' {Buffer.add_char buf '\t'; lex_string buf lexbuf }
   | '\\' 'r' {Buffer.add_char buf '\r'; lex_string buf lexbuf }

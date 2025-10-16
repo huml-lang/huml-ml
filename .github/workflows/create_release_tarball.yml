@@ -1,0 +1,26 @@
+name: Create Release Tarball
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          submodules: 'recursive'
+
+      - name: Package Project
+        run: tar -czf /tmp/huml-${{ github.ref_name }}.tar.gz --exclude='.git' .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: huml-${{ github.ref_name }}.tar.gz
+          path: /tmp/huml-${{ github.ref_name }}.tar.gz

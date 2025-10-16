@@ -3,3 +3,13 @@
  (public_name huml)
  (package huml-cli)
  (libraries huml yojson))
+
+(executable
+ (name huml_js)
+ (public_name huml_js)
+ (package huml-js)
+ (libraries huml yojson js_of_ocaml)
+ (preprocess
+  (pps js_of_ocaml-ppx))
+ (modes byte js)
+ (js_of_ocaml (flags --opt=3)))

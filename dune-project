@@ -33,3 +33,14 @@
     ocaml
     huml
     yojson))
+
+(package
+  (name huml-js)
+  (synopsis "OCaml-to-JS compilation of Huml with Js_of_ocaml")
+  (description "OCaml-to-JS compilation of Huml with Js_of_ocaml")
+  (depends
+    ocaml
+    huml
+    js_of_ocaml
+    js_of_ocaml-ppx
+    yojson))

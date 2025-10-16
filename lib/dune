@@ -8,6 +8,4 @@
  (name huml)
  (public_name huml)
  (inline_tests)
- (modules huml lexer parser types)
- (preprocess
-  (pps ppx_inline_test)))
+ (modules huml lexer parser types))

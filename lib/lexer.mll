@@ -142,7 +142,11 @@ and lex_string buf =
   | _ as c {Buffer.add_char buf c; lex_string buf lexbuf }
 and lex_start_multiline_string f =
   parse
-  | comment? newline { indent_level := !indent_level + indent_width; f (Buffer.create 256) lexbuf }
+  | comment? newline {
+      new_line lexbuf;
+      indent_level := !indent_level + indent_width;
+      f (Buffer.create 256) lexbuf
+    }
   | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
   | [^ '\n'] { raise (SyntaxError "unexpected content at end of line") }
 and lex_start_triple_backtick_string buf =

@@ -53,175 +53,43 @@ let ast = parse_huml_string huml_content in
 
 The parsed AST is compatible with [`Yojson.Safe.t`](https://ocaml-doc.github.io/odoc-examples/yojson/Yojson/Safe/index.html).
 
-## Installation
+## JavaScript Usage
+
+First build the `huml_js.bc.js` target using `dune`:
 
 ```bash
-# Build from source
-dune build
-
-# Install locally
-dune install
+dune build bin/huml_js.bc.js
 ```
 
-## Grammar
+Then use the generated JavaScript file from `_build/default/bin/huml_js.bc.js`. This
+file can be used as a browser `<script src="...">` or in another runtime like Node.js.
 
-### Tokens
-- NEWLINE
-- EOF
-- COMMA
-- INDENT
-- DEDENT
-- <string> IDENT
-- <string> STRING
-- <float> FLOAT
-- <int> INT
-- <bool> BOOL
-- NULL
-- EMPTY_LIST
-- EMPTY_DICT
-- SCALAR_START
-- INLINE_VECTOR_START
-- MULTILINE_VECTOR_START
+It exports a `huml` object with a single `parse` method that takes a string and returns
+an object of type `{ "error": string, "output": string }`. If `"error"` is an empty
+string, then the parsing was successful and `"output"` contains the JSON string.
 
-### BNF
+```javascript
+const result = huml.parse(...);
 
-```
-main:
-  | NEWLINE* root_value NEWLINE* EOF
-  ;
-
-root_value:
-  (* root value needs disambiguating between inline & multiline vectors *)
-  | scalar_key_value, ( COMMA scalar_key_value )+  (* inline dict *)
-  | scalar, ( COMMA scalar )+  (* inline list *)
-  | multiline_vector
-  | scalar
-  | EMPTY_LIST
-  | EMPTY_DICT
-  ; 
-
-scalar:
-  | STRING
-  | FLOAT
-  | INT
-  | BOOL
-  | NULL
-  ;
-
-(* vectors *)
-vector:
-  | inline_vector
-  | multiline_vector
-  ;
-
-inline_vector:
-  | inline_list
-  | inline_dict
-  ;
-
-multiline_vector:
-  | multiline_list
-  | multiline_dict
-  ;
-
-(* lists *)
-
-inline_list:
-  | EMPTY_LIST
-  | scalar, ( COMMA scalar )*
-  ;
-
-multiline_list:
-  (* preceded(NEWLINE, ...) will error on hanging newline at end *)
-  | multiline_list_item, multiline_list_items
-  ;
-
-multiline_list_items:
-  | NEWLINE, multiline_list_item, multiline_list_items
-  | NEWLINE?
-  ;
-
-multiline_list_item:
-  | DASH ( scalar | vector_value )
-  ;
-
-(* dicts *)
-
-inline_dict:
-  | EMPTY_DICT
-  | scalar_key_value, ( COMMA scalar_key_value )*
-  ;
-
-multiline_dict:
-  | multiline_dict_item, multiline_dict_items
-
-multiline_dict_items:
-  | NEWLINE, multiline_dict_item, multiline_dict_items
-  | NEWLINE?
-  ;
-
-multiline_dict_item:
-  | scalar_key_value
-  | dict_key, vector_value
-  ;
-
-scalar_key_value:
-  | dict_key, SCALAR_START, scalar
-  ;
-
-dict_key:
-  | IDENT | STRING ;
-
-vector_value:
-  | INLINE_VECTOR_START, inline_vector
-  | MULTILINE_VECTOR_START, NEWLINE, INDENT, multiline_vector, DEDENT
-  ;
+if (result.error) {
+    console.error("Error parsing HUML:", result.error);
+} else {
+    console.log("Parsed JSON:", result.output);
+}
 ```
 
-### Tokenizer
+Look at [`examples/playground.html`](examples/playground.html) for a working example.
 
-`curr_ind` = current indentation level (in spaces)
+## Installation
 
-```
-| '\n', comment                           -> skip & continue
-| '\n', ' '{curr_ind}                     -> NEWLINE
-| '\n', ' '{curr_ind+2}                   -> NEWLINE, INDENT
-| '\n', ' '{< curr_ind}                   -> DEDENT (curr_ind - len(m)) / 2 times, NEWLINE
-| (comment?, '\n')+                       -> NEWLINE
-| "[]"                                    -> EMPTY_LIST
-| "{}"                                    -> EMPTY_DICT
-| "::", comment?, '\n'                    -> [MULTILINE_VECTOR_START, NEWLINE]
-| "::"                                    -> INLINE_VECTOR_START  # expect space after
-| ":"                                     -> SCALAR_START         # expect space after
-| "-"                                     -> DASH                 # expect space after
-| ","                                     -> COMMA                # expect space after
-| ('+'|'-')?, ['0'-'9' '_']+              -> INT(int)             # from decimal
-| ('+'|'-')?, "0x",
-    ['0'-'9' 'a'-'f' 'A'-'F' '_']+        -> INT(int)             # from hex
-| ('+'|'-')?, "0o",
-    ['0'-'7' '_']+                        -> INT(int)             # from octal
-| ('+'|'-')?, "0b", ['0'-'1' '_']+        -> INT(int)             # from binary
-| "nan"                                   -> FLOAT(float)         # from nan
-| ('+'|'-')? "inf"                        -> FLOAT(float)         # from inf
-| int, '.', ['0'-'9' '_'],
-    (('e'|'E'), int)?                     -> FLOAT(float)
-| int, (('e'|'E') int)                    -> FLOAT(float)
-| "true" | "false"                        -> BOOL(bool)
-| "null"                                  -> NULL
-| '"' ("\\\"" | [^ '\n' '"' ])* '"'       -> STRING(string)       # additionally, handle escape sequences
-| "\"\"\"", comment?, '\n'
-    | '\n' '\w'{curr_ind} "\"\"\""        -> STRING(string)
-    | '\w'* '\n' '\w'*                    -> ignore line, continue string
-    | '\\' _                              -> handle escape sequence, add char to string
-    | char                                -> add char to string
-| "```", comment?, '\n', '\w'{curr_ind+2}
-    | '\n' '\w'{curr_ind} "```"           -> STRING(string)
-    | '\n' '\w'{curr_ind+2} (s:[^ '\n']*) -> add s to string
-    | _                                   -> error: improper indent?
-| eof                                     -> EOF
+Setup `opam`, `dune`, clone this repository, and run:
 
-comment: whitespace* '#' [^ '\n']*
-whitespace: ' ' | '\t'
+```bash
+# Just the library
+dune build -p huml @install
+
+# CLI
+dune build -p huml-cli @install
 ```
 
 ## License

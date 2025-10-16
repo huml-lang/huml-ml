@@ -1,0 +1,4 @@
+[submodule "tests"]
+	path = tests
+	url = git@github.com:huml-lang/tests
+	branch = master

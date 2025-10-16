@@ -90,7 +90,8 @@ let parse_args () =
     | "--lex" :: rest ->
         lex_only_flag := true;
         parse_args_rec rest
-    | file :: rest when not (String.starts_with ~prefix:"-" file) ->
+    | file :: rest when not (String.length file > 0 && String.get file 0 = '-')
+      ->
         input_file := Some file;
         parse_args_rec rest
     | unknown :: _ -> error_and_exit ("Unknown option: " ^ unknown) 1

@@ -7,5 +7,4 @@
 (library
  (name huml)
  (public_name huml)
- (inline_tests)
  (modules huml lexer parser types))

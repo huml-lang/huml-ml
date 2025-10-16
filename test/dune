@@ -1,3 +1,4 @@
 (test
  (name test_huml)
- (libraries huml yojson alcotest))
+ (libraries huml yojson alcotest)
+ (package huml))

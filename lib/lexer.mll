@@ -79,8 +79,6 @@ let ident = ['a'-'z' 'A'-'Z'] (['0'-'9' 'a'-'z' 'A'-'Z' '_' '-'])*
 let whitespace = [' ' '\t' '\r']
 let newline = '\n'
 
-let escapable = '\\' | 'b' | 'f' | 'n' | 'r' | 't' | 'v'
-
 let comment = whitespace* "# " [^ '\n']*
 
 rule lex =
@@ -139,7 +137,6 @@ and lex_string buf =
   | '\\' 'b' {Buffer.add_char buf '\b'; lex_string buf lexbuf }
   | '\\' 'f' {Buffer.add_char buf '\012'; lex_string buf lexbuf }
   | '\\' 'v' {Buffer.add_char buf '\011'; lex_string buf lexbuf }
-  | '\\' '/' {Buffer.add_char buf '/'; lex_string buf lexbuf }
   | ('\\' _ as s) { raise (SyntaxError (Printf.sprintf "invalid escape sequence %S" s)) }
   | '\n' {raise (SyntaxError "unterminated string literal")}
   | _ as c {Buffer.add_char buf c; lex_string buf lexbuf }
@@ -160,10 +157,9 @@ and lex_start_triple_quote_string buf =
   | whitespace* { lex_triple_quote_string buf lexbuf }
 and lex_triple_backtick_string buf =
   parse
-  | '\\' ('`' | escapable as c) {Buffer.add_char buf c; lex_triple_backtick_string buf lexbuf }
   | newline (' '* as indentation) "```" {
-        check_indentation (!indent_level - indent_width) indentation;
         new_line lexbuf;
+        check_indentation (!indent_level - indent_width) indentation;
         indent_level := !indent_level - indent_width;
         Buffer.contents buf
     }

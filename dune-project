@@ -23,7 +23,7 @@
  (description "OCaml parser for the Huml markup language")
  (depends
    ocaml
-   menhir
+   (menhir (>= 20180523))
    (alcotest :with-test)
    (yojson :with-test)))
 

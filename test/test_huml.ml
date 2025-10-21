@@ -35,7 +35,7 @@ let string_of_yojson v =
   | `List _ -> "[Array]"
   | _ -> failwith "Unknown Yojson type"
 
-let load_document_tests_from_dir dir =
+let load_document_tests_from_dir ~check_output dir =
   let make_test_case ?json_filename name huml_filename =
     let huml_ic = open_in huml_filename in
     {
@@ -44,10 +44,10 @@ let load_document_tests_from_dir dir =
       error = false;
       output =
         (match json_filename with
-        | Some json_file ->
+        | Some json_file when check_output ->
             let ic = open_in json_file in
             Some (Yojson.Safe.from_channel ic)
-        | None -> None);
+        | _ -> None);
     }
   in
   let filenames = Sys.readdir dir |> Array.to_list in
@@ -73,7 +73,7 @@ let load_document_tests_from_dir dir =
   in
   test_cases
 
-let load_tests_from_json filename =
+let load_tests_from_json ~check_output filename =
   let ic = open_in filename in
   let json_str = really_input_string ic (in_channel_length ic) in
   close_in ic;
@@ -86,7 +86,10 @@ let load_tests_from_json filename =
         name = test_json |> member "name" |> to_string;
         input = String (test_json |> member "input" |> to_string);
         error = test_json |> member "error" |> to_bool;
-        output = test_json |> member "output" |> to_option (fun j -> j);
+        output =
+          (if check_output then
+             test_json |> member "output" |> to_option (fun j -> j)
+           else None);
       })
     json_list
 
@@ -172,7 +175,7 @@ let test_huml_parsing test_case () =
       | Some expected_json ->
           let result_json = yojson_of_huml result in
           if not (Yojson.Safe.equal result_json expected_json) then
-            let diffs = get_deep_diffs expected_json result_json in
+            let diffs = get_deep_diffs result_json expected_json in
             let msg = String.concat "\n" diffs in
             failf "Parsed output does not match expected output:\n%s" msg
       | None ->
@@ -189,11 +192,15 @@ let create_test_suite test_cases = List.map create_test_case test_cases
 
 let () =
   let ( // ) = Filename.concat in
+  let check_output = Sys.word_size = 64 in
   let assertions = tests_dir // "assertions" // "mixed.json" in
-  let assertion_tests = load_tests_from_json assertions in
-  let test_suite = create_test_suite assertion_tests in
+  let assertion_tests =
+    load_tests_from_json ~check_output assertions |> create_test_suite
+  in
   let documents_dir = tests_dir // "documents" in
-  let document_tests = load_document_tests_from_dir documents_dir in
-  let document_test_suite = create_test_suite document_tests in
+  let document_tests =
+    load_document_tests_from_dir ~check_output documents_dir
+    |> create_test_suite
+  in
   run "parsing"
-    [ ("assertions", test_suite); ("documents", document_test_suite) ]
+    [ ("assertions", assertion_tests); ("documents", document_tests) ]

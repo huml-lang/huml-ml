@@ -1,4 +1,7 @@
 (test
  (name test_huml)
  (libraries huml yojson alcotest)
- (package huml))
+ (package huml)
+ (deps
+   (glob_files %{project_root}/tests/assertions/*.{json,huml})
+   (glob_files %{project_root}/tests/documents/*.{json,huml})))

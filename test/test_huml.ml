@@ -9,7 +9,7 @@ type test_case = {
   output : Yojson.Safe.t option;
 }
 
-let tests_dir = "../../../tests"
+let tests_dir = "../tests"
 
 let rec yojson_of_huml huml : Yojson.Safe.t =
   match huml with

@@ -33,7 +33,7 @@
   (description "Command line interface for Huml parser")
   (depends
     ocaml
-    huml
+    (huml (= :version))
     yojson))
 
 (package

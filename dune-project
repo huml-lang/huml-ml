@@ -2,7 +2,7 @@
 (using menhir 3.0)
 
 (name huml)
-(version v0.1.1)
+(version 0.1.1)
 
 (generate_opam_files true)
 

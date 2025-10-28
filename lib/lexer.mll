@@ -6,7 +6,7 @@ exception SyntaxError of string
 
 let trailing_spaces_not_allowed = "trailing spaces are not allowed"
 let expected_single_space_after s found =
-  if found = "" then Printf.sprintf "expected single space before %S" s else
+  if found = "" then Printf.sprintf "expected single space after %S" s else
   Printf.sprintf "expected single space after %S, found multiple" s
 let bad_indent expected found =
   Printf.sprintf "bad indent %d, expected %d" found expected

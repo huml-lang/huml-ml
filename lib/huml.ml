@@ -4,7 +4,7 @@ open Types
 type t = Ast.t
 
 let ( let* ) = Result.bind
-let supported_huml_version = "v0.1.0"
+let supported_huml_version = "v0.2.0"
 
 let show_position pos =
   Printf.sprintf "%sline %d, column %d"

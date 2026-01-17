@@ -99,7 +99,10 @@ and lex_really =
   (* yes *)
   parse
   | comment { lex lexbuf }
-  | newline { new_line lexbuf; lex_newline false lexbuf }
+  | newline {
+      new_line lexbuf;
+      lex_newline false lexbuf
+    }
   | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
   | int { lexeme lexbuf |> int_or_intlit_of_string }
   | hex { lexeme lexbuf |> int_or_intlit_of_string }
@@ -118,8 +121,7 @@ and lex_really =
         lex_newline true lexbuf
     }
   | "::" { expect_single_space "::" INLINE_VECTOR_START lexbuf }
-  | "```" { STRING (lex_start_multiline_string lex_start_triple_backtick_string lexbuf) }
-  | "\"\"\"" { STRING (lex_start_multiline_string lex_start_triple_quote_string lexbuf) }
+  | "\"\"\"" { STRING (lex_start_multiline_string lexbuf) }
   | ident { IDENT (lexeme lexbuf) }
   | "[]" { LIST_EMPTY }
   | "{}" { DICT_EMPTY }
@@ -140,64 +142,36 @@ and lex_string buf =
   | ('\\' _ as s) { raise (SyntaxError (Printf.sprintf "invalid escape sequence %S" s)) }
   | '\n' {raise (SyntaxError "unterminated string literal")}
   | _ as c {Buffer.add_char buf c; lex_string buf lexbuf }
-and lex_start_multiline_string f =
+and lex_start_multiline_string =
   parse
   | comment? newline {
       new_line lexbuf;
       indent_level := !indent_level + indent_width;
-      f (Buffer.create 256) lexbuf
+      lex_multiline_string_indent true (Buffer.create 256) lexbuf
     }
   | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
   | [^ '\n'] { raise (SyntaxError "unexpected content at end of line") }
-and lex_start_triple_backtick_string buf =
+and lex_multiline_string_indent is_first_line buf =
   parse
-  | ' '* as ws {
+  | (' '* as ws) "\"\"\"" {
+      check_indentation (!indent_level - indent_width) ws;
+      indent_level := !indent_level - indent_width;
+      Buffer.contents buf
+  }
+  | (' '* as ws) {
+      if (not is_first_line) then Buffer.add_char buf '\n';
       let s = dedent ws in
       Buffer.add_string buf s;
-      lex_triple_backtick_string buf lexbuf
-  }
-and lex_start_triple_quote_string buf =
+      lex_multiline_string buf lexbuf
+    }
+and lex_multiline_string buf =
   parse
-  | whitespace* { lex_triple_quote_string buf lexbuf }
-and lex_triple_backtick_string buf =
-  parse
-  | newline (' '* as indentation) "```" {
-        new_line lexbuf;
-        check_indentation (!indent_level - indent_width) indentation;
-        indent_level := !indent_level - indent_width;
-        Buffer.contents buf
+  | ([^ '\n']* as s) newline {
+      new_line lexbuf;
+      Buffer.add_string buf s;
+      lex_multiline_string_indent false buf lexbuf
     }
-  | newline (' '* as ws) {
-        new_line lexbuf;
-        let s = "\n" ^ (dedent ws) in
-        Buffer.add_string buf s;
-        lex_triple_backtick_string buf lexbuf
-  }
-  | _ as c {
-        Buffer.add_char buf c;
-        lex_triple_backtick_string buf lexbuf
-    }
-and lex_triple_quote_string buf =
-  parse
-  | '\\' ("\"\"\"" | "\\" as s) {
-        Buffer.add_string buf s;
-        lex_triple_quote_string buf lexbuf
-    }
-  | whitespace* newline (whitespace* as indentation) "\"\"\"" {
-        check_indentation (!indent_level - indent_width) indentation;
-        new_line lexbuf;
-        indent_level := !indent_level - indent_width;
-        Buffer.contents buf
-    }
-  | whitespace* newline whitespace* {
-        new_line lexbuf;
-        Buffer.add_char buf '\n';
-        lex_triple_quote_string buf lexbuf
-    }
-  | _ as c {
-        Buffer.add_char buf c;
-        lex_triple_quote_string buf lexbuf
-    }
+  | _ { raise (SyntaxError ("Unexpected character " ^ lexeme lexbuf)) }
 and expect_single_space symbol token =
   parse
   | ' ' { token }
@@ -207,11 +181,11 @@ and lex_newline expect_indent =
   | comment? newline {
       new_line lexbuf;
       lex_newline expect_indent lexbuf
-  }
+    }
   | whitespace+ newline {
       raise (SyntaxError trailing_spaces_not_allowed)
-  }
+    }
   | whitespace* {
       add_indent_tokens ~expect_indent ~extra:NEWLINE (lexeme lexbuf);
       lex lexbuf
-  }
+    }

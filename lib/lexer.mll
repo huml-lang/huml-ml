@@ -2,6 +2,25 @@
 open Parser
 open Lexing
 
+(* State Monad for indent level & queued tokens *)
+module State = struct
+  type state = { indent_level: int ; queued_tokens: token list }
+  type 'a t = state -> 'a * state
+
+  let return v = fun s -> (v, s)
+  let bind m f =
+    fun s ->
+      let (v, s') = m s in
+      (f v) s'
+
+  let get = fun s -> (s, s)
+  let set s' = fun _ -> ((), s')
+
+  let ( let* ) = bind
+end
+
+open State
+
 exception SyntaxError of string
 
 let trailing_spaces_not_allowed = "trailing spaces are not allowed"
@@ -12,8 +31,7 @@ let bad_indent expected found =
   Printf.sprintf "bad indent %d, expected %d" found expected
 
 let indent_width = 2
-let indent_level = ref 0
-let queued_tokens : token list ref = ref []
+let initial_state = { indent_level = 0; queued_tokens = [] }
 
 let add_indent_tokens ?(expect_indent=false) ?extra ws =
   let mklist extra n token =
@@ -23,22 +41,25 @@ let add_indent_tokens ?(expect_indent=false) ?extra ws =
     | None -> lst
   in
   let len = String.length ws in
+  let* s = State.get in
   match expect_indent with
-  | true when len = !indent_level + indent_width ->
-      let n_tokens = (len - !indent_level) / indent_width in
-      queued_tokens := !queued_tokens @ mklist extra n_tokens INDENT;
-      indent_level := len
-  | false when len <= !indent_level && len mod 2 = 0 ->
-      let n_tokens = (!indent_level - len) / indent_width in
-      queued_tokens := !queued_tokens @ (mklist extra n_tokens DEDENT |> List.rev);
-      indent_level := len
-  | true -> raise (SyntaxError (bad_indent (!indent_level + indent_width) len))
+  | true when len = s.indent_level + indent_width ->
+      let n_tokens = (len - s.indent_level) / indent_width in
+      let queued_tokens = s.queued_tokens @ mklist extra n_tokens INDENT in
+      let* () = State.set { queued_tokens; indent_level = len } in
+      State.return ()
+  | false when len <= s.indent_level && len mod 2 = 0 ->
+      let n_tokens = (s.indent_level - len) / indent_width in
+      let queued_tokens = s.queued_tokens @ (mklist extra n_tokens DEDENT |> List.rev) in
+      let* () = State.set { queued_tokens; indent_level = len } in
+      State.return ()
+  | true -> raise (SyntaxError (bad_indent (s.indent_level + indent_width) len))
   | false ->
       (* expected_indent:
             min(level, len) if len is even
             min(level, len-1) if n is odd
       *)
-      let expected_indent = min !indent_level (len/2 * 2) in
+      let expected_indent = min s.indent_level (len/2 * 2) in
       raise (SyntaxError (bad_indent expected_indent len))
 
 let check_indentation indent_level ws =
@@ -57,15 +78,11 @@ let int_or_intlit_of_string s =
   | None -> INT_LIT (s |> remove_underscores)
 
 let dedent ws =
+  let* s = State.get in
   let len = String.length ws in
-  if len >= !indent_level then
-    String.sub ws !indent_level (len - !indent_level)
-  else ws
-
-(* TODO: remove module-level state *)
-let init_state () =
-  indent_level := 0;
-  queued_tokens := []
+  if len >= s.indent_level then
+    State.return (String.sub ws s.indent_level (len - s.indent_level))
+  else State.return ws
 }
 
 let int = ('+'|'-')? ['0'-'9' '_']+
@@ -81,54 +98,60 @@ let newline = '\n'
 
 let comment = whitespace* "# " [^ '\n']*
 
+(* val lex : Lexing.lexbuf -> token State.t *)
 rule lex =
   parse
   | "" {
-      if !queued_tokens <> [] then
-        let token = List.hd !queued_tokens in
-        queued_tokens := List.tl !queued_tokens;
-        token
-      else lex_really lexbuf
+      let* st = State.get in
+      match st.queued_tokens with
+      | [] -> let* token = lex_really lexbuf in return token
+      | token :: rest ->
+          let* () = State.set { st with queued_tokens = rest } in
+          return token
   }
+(* val lex_version : Lexing.lexbuf -> string option *)
 and lex_version = parse
-  | "%HUML " ('v'? ['0'-'9']+ ('.' ['0'-'9']+)* as version) {
-      version
-    }
-  | "" { "" }
+  | "%HUML " ('v'? ['0'-'9']+ ('.' ['0'-'9']+)* as version) { Some version }
+  | "" { None }
+(* val lex_really : Lexing.lexbuf -> token State.t *)
 and lex_really =
-  (* yes *)
+  (* yes, really *)
   parse
   | comment { lex lexbuf }
-  | newline {
-      new_line lexbuf;
-      lex_newline false lexbuf
-    }
+  | newline { new_line lexbuf; lex_newline false lexbuf }
   | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
-  | int { lexeme lexbuf |> int_or_intlit_of_string }
-  | hex { lexeme lexbuf |> int_or_intlit_of_string }
-  | octal { lexeme lexbuf |> int_or_intlit_of_string }
-  | binary { lexeme lexbuf |> int_or_intlit_of_string }
+  | int { lexeme lexbuf |> int_or_intlit_of_string |> return }
+  | hex { lexeme lexbuf |> int_or_intlit_of_string |> return }
+  | octal { lexeme lexbuf |> int_or_intlit_of_string |> return }
+  | binary { lexeme lexbuf |> int_or_intlit_of_string |> return }
   | float {
       let f = (lexeme lexbuf |> float_of_string) in
       let i = int_of_float f in
-      if float_of_int i = f then INT i else FLOAT f
+      let token = if float_of_int i = f then INT i else FLOAT f in
+      return token
     }
-  | '"' { STRING (lex_string (Buffer.create 256) lexbuf) }
+  | '"' { return (STRING (lex_string (Buffer.create 256) lexbuf)) }
   | ':' { expect_single_space ":" SCALAR_START lexbuf }
   | "::" comment? newline {
         new_line lexbuf;
-        queued_tokens := !queued_tokens @ [MULTILINE_VECTOR_START];
+        let* st = State.get in
+        let queued_tokens = st.queued_tokens @ [MULTILINE_VECTOR_START] in
+        let* () = State.set { st with queued_tokens } in
         lex_newline true lexbuf
     }
   | "::" { expect_single_space "::" INLINE_VECTOR_START lexbuf }
-  | "\"\"\"" { STRING (lex_start_multiline_string lexbuf) }
-  | ident { IDENT (lexeme lexbuf) }
-  | "[]" { LIST_EMPTY }
-  | "{}" { DICT_EMPTY }
+  | "\"\"\"" {
+      let* s = lex_start_multiline_string lexbuf in
+      return (STRING s)
+  }
+  | ident { return (IDENT (lexeme lexbuf)) }
+  | "[]" { return LIST_EMPTY }
+  | "{}" { return DICT_EMPTY }
   | '-' { expect_single_space "-" DASH lexbuf }
   | ',' { expect_single_space "," COMMA lexbuf }
   | _ { raise (SyntaxError ("Unexpected character: " ^ lexeme lexbuf)) }
-  | eof { add_indent_tokens ~extra:EOF ""; lex lexbuf }
+  | eof { let* () = add_indent_tokens ~extra:EOF "" in lex lexbuf }
+(* val lex_string : char Buffer.t -> Lexing.lexbuf -> string *)
 and lex_string buf =
   parse
   | '"' { Buffer.contents buf }
@@ -142,28 +165,33 @@ and lex_string buf =
   | ('\\' _ as s) { raise (SyntaxError (Printf.sprintf "invalid escape sequence %S" s)) }
   | '\n' {raise (SyntaxError "unterminated string literal")}
   | _ as c {Buffer.add_char buf c; lex_string buf lexbuf }
+(* val lex_multiline_string : Lexing.lexbuf -> string State.t *)
 and lex_start_multiline_string =
   parse
   | comment? newline {
       new_line lexbuf;
-      indent_level := !indent_level + indent_width;
+      let* st = State.get in
+      let* () = State.set { st with indent_level = st.indent_level + indent_width } in
       lex_multiline_string_indent true (Buffer.create 256) lexbuf
     }
   | whitespace+ { raise (SyntaxError trailing_spaces_not_allowed) }
   | [^ '\n'] { raise (SyntaxError "unexpected content at end of line") }
+(* val lex_multiline_string_indent : bool -> char Buffer.t -> Lexing.lexbuf -> string State.t *)
 and lex_multiline_string_indent is_first_line buf =
   parse
   | (' '* as ws) "\"\"\"" {
-      check_indentation (!indent_level - indent_width) ws;
-      indent_level := !indent_level - indent_width;
-      Buffer.contents buf
+      let* st = State.get in
+      check_indentation (st.indent_level - indent_width) ws;
+      let* () = State.set { st with indent_level = st.indent_level - indent_width } in
+      return (Buffer.contents buf)
   }
   | (' '* as ws) {
       if (not is_first_line) then Buffer.add_char buf '\n';
-      let s = dedent ws in
-      Buffer.add_string buf s;
+      let* ws' = dedent ws in
+      Buffer.add_string buf ws';
       lex_multiline_string buf lexbuf
     }
+(* val lex_multiline_string : char Buffer.t -> Lexing.lexbuf -> string State.t *)
 and lex_multiline_string buf =
   parse
   | ([^ '\n']* as s) newline {
@@ -172,10 +200,12 @@ and lex_multiline_string buf =
       lex_multiline_string_indent false buf lexbuf
     }
   | _ { raise (SyntaxError ("Unexpected character " ^ lexeme lexbuf)) }
+(* val expect_single_space : string -> token -> Lexing.lexbuf -> token State.t *)
 and expect_single_space symbol token =
   parse
-  | ' ' { token }
+  | ' ' { return token }
   | ' '* as s { raise (SyntaxError (expected_single_space_after symbol s))}
+(* val lex_newline : bool -> Lexing.lexbuf -> token State.t *)
 and lex_newline expect_indent =
   parse
   | comment? newline {
@@ -186,6 +216,6 @@ and lex_newline expect_indent =
       raise (SyntaxError trailing_spaces_not_allowed)
     }
   | whitespace* {
-      add_indent_tokens ~expect_indent ~extra:NEWLINE (lexeme lexbuf);
+      let* () = add_indent_tokens ~expect_indent ~extra:NEWLINE (lexeme lexbuf) in
       lex lexbuf
     }

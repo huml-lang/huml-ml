@@ -35,14 +35,16 @@ let token_to_string = function
   | EOF -> "EOF"
 
 let lex_only lexbuf output_file =
-  let tokens = ref [] in
-  let rec collect_tokens () =
-    let token = Huml__Lexer.lex lexbuf in
-    tokens := token :: !tokens;
-    if token <> Huml__Parser.EOF then collect_tokens ()
+  let tokens =
+    let open Huml__Lexer.State in
+    let rec go acc =
+      let* token = Huml__Lexer.lex lexbuf in
+      let acc = token :: acc in
+      if token <> Huml__Parser.EOF then go acc else return acc
+    in
+    let tokens', _ = go [] Huml__Lexer.initial_state in
+    List.rev tokens'
   in
-  collect_tokens ();
-  let tokens = List.rev !tokens in
 
   (* Group tokens by lines, splitting on NEWLINE but including NEWLINE in output *)
   let rec group_by_lines acc current_line = function

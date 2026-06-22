@@ -3,7 +3,8 @@ open Types
 
 type t = Ast.t
 
-let ( let* ) = Result.bind
+module I = Parser.MenhirInterpreter
+
 let supported_huml_version = "v0.2.0"
 
 let show_position pos =
@@ -13,19 +14,39 @@ let show_position pos =
     (pos.pos_cnum - pos.pos_bol + 1)
 
 let check_version v =
-  if v <> "" && v <> supported_huml_version then
-    let msg =
-      Printf.sprintf "Unsupported HUML version %s. Supported version is %s.\n" v
-        supported_huml_version
-    in
-    Error msg
-  else Ok ()
+  match v with
+  | Some s when s <> supported_huml_version ->
+      let msg =
+        Printf.sprintf "Unsupported HUML version %s. Supported version is %s.\n" s
+          supported_huml_version
+      in
+      Error msg
+  | _ -> Ok ()
+
+let rec loop state lexbuf (checkpoint : Ast.t I.checkpoint) =
+  match checkpoint with
+  | I.InputNeeded _env ->
+      let token, state' = Lexer.lex lexbuf state in
+      let startp = lexbuf.lex_start_p
+      and endp = lexbuf.lex_curr_p in
+      let checkpoint = I.offer checkpoint (token, startp, endp) in
+      loop state' lexbuf checkpoint
+  | I.Shifting _ | I.AboutToReduce _ ->
+      let checkpoint = I.resume checkpoint in
+      loop state lexbuf checkpoint
+  | I.HandlingError _env ->
+      raise (ParseError ("Unexpected error", lexbuf.lex_start_p))
+  | I.Accepted v -> v
+  | I.Rejected -> raise (ParseError ("Parser rejected input", lexbuf.lex_start_p))
 
 let parse lexbuf =
-  Lexer.init_state ();
+  let ( let* ) = Result.bind in
   let version = Lexer.lex_version lexbuf in
   let* _ = check_version version in
-  try match Parser.main Lexer.lex lexbuf with v -> Ok v with
+  try
+    let v = loop Lexer.initial_state lexbuf (Parser.Incremental.main lexbuf.lex_curr_p) in
+    Ok v
+  with
   | Lexer.SyntaxError msg ->
       let msg' =
         Printf.sprintf "Syntax error at %s: %s\n"

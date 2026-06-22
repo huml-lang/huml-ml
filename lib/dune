@@ -2,9 +2,11 @@
  (modules lexer))
 
 (menhir
- (modules parser))
+ (modules parser)
+ (flags "--inspection" "--table"))
 
 (library
  (name huml)
  (public_name huml)
+ (libraries menhirLib)
  (modules huml lexer parser types))

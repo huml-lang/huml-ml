@@ -84,7 +84,7 @@ let parse_args () =
         print_string help_msg;
         exit 0
     | "-v" :: _ | "--version" :: _ ->
-        Printf.printf "huml %s\n" version;
+        Printf.printf "huml-ml %s (supported spec version: %s)\n" version Huml.supported_spec_version;
         exit 0
     | "-o" :: file :: rest | "--output" :: file :: rest ->
         output_file := Some file;

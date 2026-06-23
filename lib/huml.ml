@@ -5,7 +5,7 @@ type t = Ast.t
 
 module I = Parser.MenhirInterpreter
 
-let supported_huml_version = "v0.2.0"
+let supported_spec_version = "v0.2.0"
 
 let show_position pos =
   Printf.sprintf "%sline %d, column %d"
@@ -15,10 +15,10 @@ let show_position pos =
 
 let check_version v =
   match v with
-  | Some s when s <> supported_huml_version ->
+  | Some s when s <> supported_spec_version ->
       let msg =
         Printf.sprintf "Unsupported HUML version %s. Supported version is %s.\n" s
-          supported_huml_version
+          supported_spec_version
       in
       Error msg
   | _ -> Ok ()
